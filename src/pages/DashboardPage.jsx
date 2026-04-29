@@ -151,8 +151,9 @@ export default function DashboardPage() {
   const isAvailable = rider?.riderStatus === "Available";
   const isOnDelivery = rider?.riderStatus === "On Delivery";
 
-  const availableOrders = orders.filter(o => o.status === "pending" && !o.riderId);
-  const myOrders = orders.filter(o => o.riderId);
+  const availableOrders = orders.filter(o => 
+    (o.status === "pending" || o.status === "confirmed") && !o.riderId
+  );  const myOrders = orders.filter(o => o.riderId);
 
   if (loadingProfile) {
     return (
