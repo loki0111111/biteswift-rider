@@ -135,7 +135,7 @@ export default function DashboardPage() {
     setActionLoading(orderId);
     try {
       await api.post(`/rider/orders/${orderId}/delivered`);
-      await fetchOrders();
+      await Promise.all([fetchOrders(), fetchProfile()]);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to mark as delivered.");
     } finally {
