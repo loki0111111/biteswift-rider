@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import RiderWalletPage from "./RiderWalletPage";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconPackage = () => (
@@ -39,6 +40,12 @@ const IconLogOut = () => (
   </svg>
 );
 
+const IconWallet = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M22 7V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2"/>
+  </svg>
+);
+
 const IconLoader = () => (
   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
 );
@@ -46,11 +53,11 @@ const IconLoader = () => (
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const map = {
-    pending:    { label: "Pending",     cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
-    assigned:   { label: "Assigned",    cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-    "picked-up":{ label: "Picked Up",   cls: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
-    "in-transit":{ label: "In Transit", cls: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
-    delivered:  { label: "Delivered",   cls: "bg-green-500/10 text-green-400 border-green-500/20" },
+    pending:     { label: "Pending",     cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
+    assigned:    { label: "Assigned",    cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    "picked-up": { label: "Picked Up",   cls: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+    "in-transit":{ label: "In Transit",  cls: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+    delivered:   { label: "Delivered",   cls: "bg-green-500/10 text-green-400 border-green-500/20" },
   };
   const s = map[status] || { label: status, cls: "bg-white/5 text-white/30 border-white/10" };
   return (
@@ -63,19 +70,17 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [rider, setRider] = useState(null);
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState("available"); // available | mydeliveries
+  const [activeTab, setActiveTab] = useState("available");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [togglingStatus, setTogglingStatus] = useState(false);
-  const [actionLoading, setActionLoading] = useState(null); // orderId being acted on
+  const [actionLoading, setActionLoading] = useState(null);
 
-  // Fetch rider profile
   const fetchProfile = async () => {
     try {
       const res = await api.get("/auth/rider/profile");
       setRider(res.data.data);
     } catch {
-      // token invalid — log out
       localStorage.removeItem("riderToken");
       navigate("/login");
     } finally {
@@ -83,7 +88,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Fetch orders
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
@@ -101,7 +105,6 @@ export default function DashboardPage() {
     fetchOrders();
   }, []);
 
-  // Toggle Available / Offline
   const toggleStatus = async () => {
     if (!rider) return;
     const newStatus = rider.riderStatus === "Available" ? "Offline" : "Available";
@@ -116,7 +119,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Accept an order
   const acceptOrder = async (orderId) => {
     setActionLoading(orderId);
     try {
@@ -130,7 +132,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Mark delivered
   const markDelivered = async (orderId) => {
     setActionLoading(orderId);
     try {
@@ -151,9 +152,10 @@ export default function DashboardPage() {
   const isAvailable = rider?.riderStatus === "Available";
   const isOnDelivery = rider?.riderStatus === "On Delivery";
 
-  const availableOrders = orders.filter(o => 
+  const availableOrders = orders.filter(o =>
     (o.status === "pending" || o.status === "confirmed") && !o.riderId
-  );  const myOrders = orders.filter(o => o.riderId);
+  );
+  const myOrders = orders.filter(o => o.riderId);
 
   if (loadingProfile) {
     return (
@@ -192,124 +194,140 @@ export default function DashboardPage() {
 
       <div className="max-w-lg mx-auto px-4 py-5 space-y-5">
 
-        {/* ── Status Toggle Card ── */}
-        <div className={`rounded-2xl p-5 border transition-all ${isAvailable ? "bg-green-500/10 border-green-500/20" : isOnDelivery ? "bg-blue-500/10 border-blue-500/20" : "bg-[#111111] border-white/5"}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-white/40 mb-1">Current Status</p>
-              <p className={`text-lg font-bold ${isAvailable ? "text-green-400" : isOnDelivery ? "text-blue-400" : "text-white/40"}`}>
-                {rider?.riderStatus}
-              </p>
-              <p className="text-xs text-white/30 mt-0.5">
-                {isAvailable ? "You are visible to incoming orders" : isOnDelivery ? "Complete your delivery first" : "You won't receive any orders"}
-              </p>
+        {/* ── Status Toggle Card — hidden on wallet tab ── */}
+        {activeTab !== "wallet" && (
+          <div className={`rounded-2xl p-5 border transition-all ${isAvailable ? "bg-green-500/10 border-green-500/20" : isOnDelivery ? "bg-blue-500/10 border-blue-500/20" : "bg-[#111111] border-white/5"}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/40 mb-1">Current Status</p>
+                <p className={`text-lg font-bold ${isAvailable ? "text-green-400" : isOnDelivery ? "text-blue-400" : "text-white/40"}`}>
+                  {rider?.riderStatus}
+                </p>
+                <p className="text-xs text-white/30 mt-0.5">
+                  {isAvailable ? "You are visible to incoming orders" : isOnDelivery ? "Complete your delivery first" : "You won't receive any orders"}
+                </p>
+              </div>
+              <button
+                onClick={toggleStatus}
+                disabled={togglingStatus || isOnDelivery}
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                  isOnDelivery
+                    ? "bg-white/5 text-white/20 cursor-not-allowed"
+                    : isAvailable
+                    ? "bg-white/10 text-white hover:bg-white/20"
+                    : "bg-[#F97316] text-white hover:bg-orange-600"
+                }`}
+              >
+                {togglingStatus ? <IconLoader /> : isAvailable ? "Go Offline" : "Go Online"}
+              </button>
             </div>
-            <button
-              onClick={toggleStatus}
-              disabled={togglingStatus || isOnDelivery}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
-                isOnDelivery
-                  ? "bg-white/5 text-white/20 cursor-not-allowed"
-                  : isAvailable
-                  ? "bg-white/10 text-white hover:bg-white/20"
-                  : "bg-[#F97316] text-white hover:bg-orange-600"
-              }`}
-            >
-              {togglingStatus ? <IconLoader /> : isAvailable ? "Go Offline" : "Go Online"}
-            </button>
           </div>
-        </div>
+        )}
 
-        {/* ── Stats Row ── */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Wallet", value: `₦${Number(rider?.walletBalance || 0).toLocaleString()}` },
-            { label: "Total Earned", value: `₦${Number(rider?.totalEarnings || 0).toLocaleString()}` },
-            { label: "Vehicle", value: rider?.vehicleType || "—" },
-          ].map((s) => (
-            <div key={s.label} className="bg-[#111111] border border-white/5 rounded-2xl p-3 text-center">
-              <p className="text-sm font-bold text-white">{s.value}</p>
-              <p className="text-xs text-white/30 mt-0.5">{s.label}</p>
-            </div>
-          ))}
-        </div>
+        {/* ── Stats Row — hidden on wallet tab ── */}
+        {activeTab !== "wallet" && (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Wallet", value: `₦${Number(rider?.walletBalance || 0).toLocaleString()}` },
+              { label: "Total Earned", value: `₦${Number(rider?.totalEarnings || 0).toLocaleString()}` },
+              { label: "Vehicle", value: rider?.vehicleType || "—" },
+            ].map((s) => (
+              <div key={s.label} className="bg-[#111111] border border-white/5 rounded-2xl p-3 text-center">
+                <p className="text-sm font-bold text-white">{s.value}</p>
+                <p className="text-xs text-white/30 mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Tabs ── */}
         <div className="flex gap-1 bg-[#111111] border border-white/5 rounded-2xl p-1">
           {[
-            { key: "available", label: `Available Orders (${availableOrders.length})` },
+            { key: "available", label: `Available (${availableOrders.length})` },
             { key: "mydeliveries", label: `My Deliveries (${myOrders.length})` },
+            { key: "wallet", label: "Wallet", icon: <IconWallet /> },
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 text-xs py-2 rounded-xl font-medium transition-all ${activeTab === tab.key ? "bg-[#F97316] text-white" : "text-white/40 hover:text-white"}`}
+              className={`flex-1 text-xs py-2 rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === tab.key ? "bg-[#F97316] text-white" : "text-white/40 hover:text-white"
+              }`}
             >
+              {tab.icon && tab.icon}
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* ── Orders List ── */}
-        {loadingOrders ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
-          </div>
-        ) : activeTab === "available" ? (
-          availableOrders.length === 0 ? (
-            <div className="bg-[#111111] border border-white/5 rounded-2xl p-10 text-center">
-              <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3 text-white/20">
-                <IconPackage />
-              </div>
-              <p className="text-white/30 text-sm">No available orders right now</p>
-              <p className="text-white/20 text-xs mt-1">New orders will appear here</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {availableOrders.map((order) => (
-                <OrderCard
-                  key={order._id}
-                  order={order}
-                  actionLabel="Accept Order"
-                  actionColor="bg-[#F97316] hover:bg-orange-600"
-                  onAction={() => acceptOrder(order._id)}
-                  loading={actionLoading === order._id}
-                />
-              ))}
-            </div>
-          )
-        ) : (
-          myOrders.length === 0 ? (
-            <div className="bg-[#111111] border border-white/5 rounded-2xl p-10 text-center">
-              <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3 text-white/20">
-                <IconCheck />
-              </div>
-              <p className="text-white/30 text-sm">No active deliveries</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {myOrders.map((order) => (
-                <OrderCard
-                  key={order._id}
-                  order={order}
-                  actionLabel={order.status === "delivered" ? "Delivered ✓" : "Mark as Delivered"}
-                  actionColor={order.status === "delivered" ? "bg-green-500/20 text-green-400 cursor-default" : "bg-green-500 hover:bg-green-600"}
-                  onAction={order.status !== "delivered" ? () => markDelivered(order._id) : null}
-                  loading={actionLoading === order._id}
-                  showStatus
-                />
-              ))}
-            </div>
-          )
+        {/* ── Wallet Tab ── */}
+        {activeTab === "wallet" && (
+          <RiderWalletPage rider={rider} />
         )}
 
-        {/* Refresh button */}
-        <button
-          onClick={fetchOrders}
-          className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/60 text-sm font-medium rounded-xl transition-all"
-        >
-          Refresh Orders
-        </button>
+        {/* ── Orders List ── */}
+        {activeTab !== "wallet" && (
+          <>
+            {loadingOrders ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+              </div>
+            ) : activeTab === "available" ? (
+              availableOrders.length === 0 ? (
+                <div className="bg-[#111111] border border-white/5 rounded-2xl p-10 text-center">
+                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3 text-white/20">
+                    <IconPackage />
+                  </div>
+                  <p className="text-white/30 text-sm">No available orders right now</p>
+                  <p className="text-white/20 text-xs mt-1">New orders will appear here</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {availableOrders.map((order) => (
+                    <OrderCard
+                      key={order._id}
+                      order={order}
+                      actionLabel="Accept Order"
+                      actionColor="bg-[#F97316] hover:bg-orange-600"
+                      onAction={() => acceptOrder(order._id)}
+                      loading={actionLoading === order._id}
+                    />
+                  ))}
+                </div>
+              )
+            ) : (
+              myOrders.length === 0 ? (
+                <div className="bg-[#111111] border border-white/5 rounded-2xl p-10 text-center">
+                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3 text-white/20">
+                    <IconCheck />
+                  </div>
+                  <p className="text-white/30 text-sm">No active deliveries</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {myOrders.map((order) => (
+                    <OrderCard
+                      key={order._id}
+                      order={order}
+                      actionLabel={order.status === "delivered" ? "Delivered ✓" : "Mark as Delivered"}
+                      actionColor={order.status === "delivered" ? "bg-green-500/20 text-green-400 cursor-default" : "bg-green-500 hover:bg-green-600"}
+                      onAction={order.status !== "delivered" ? () => markDelivered(order._id) : null}
+                      loading={actionLoading === order._id}
+                      showStatus
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
+            <button
+              onClick={fetchOrders}
+              className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/60 text-sm font-medium rounded-xl transition-all"
+            >
+              Refresh Orders
+            </button>
+          </>
+        )}
 
       </div>
     </div>
