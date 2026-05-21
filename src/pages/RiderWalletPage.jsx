@@ -73,6 +73,18 @@ function BankDetailsForm({ profile, onSaved }) {
     fetchBanks();
   }, []);
 
+
+  useEffect(() => {
+  if (profile) {
+    setForm({
+      bankCode: profile.bankCode || "",
+      bankName: profile.bankName || "",
+      bankAccountNumber: profile.bankAccountNumber || "",
+      accountName: profile.accountName || "",
+    });
+  }
+}, [profile]);
+
   const filteredBanks = banks.filter(b =>
     b.name.toLowerCase().includes(bankSearch.toLowerCase())
   );
