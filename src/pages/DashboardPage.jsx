@@ -365,8 +365,8 @@ function OrderCard({ order, actionLabel, actionColor, onAction, loading, showSta
 
       <div className="flex items-center justify-between pt-2 border-t border-white/5">
         <div>
-          <p className="text-xs text-white/30">Order Total</p>
-          <p className="text-sm font-bold text-white">₦{Number(order.totalAmount || 0).toLocaleString()}</p>
+          <p className="text-xs text-white/30">Your Delivery Fee</p>
+          <p className="text-sm font-bold text-white">₦{Number(order.deliveryFee || 0).toLocaleString()}</p>
         </div>
         {onAction && (
           <button
