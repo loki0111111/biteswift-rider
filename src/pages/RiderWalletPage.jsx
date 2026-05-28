@@ -275,7 +275,7 @@ function WithdrawModal({ balance, profile, onClose, onSuccess }) {
   const handleWithdraw = async () => {
     setError(null);
     const amt = Number(amount);
-    if (!amt || amt < 500) { setError("Minimum withdrawal amount is ₦500."); return; }
+    if (!amt || amt < 100) { setError("Minimum withdrawal amount is ₦100."); return; }
     if (amt > balance) { setError("Amount exceeds your available balance."); return; }
     if (!hasBankInfo) {
       setError("No bank account linked. Please add your bank details first.");
@@ -341,7 +341,7 @@ function WithdrawModal({ balance, profile, onClose, onSuccess }) {
               onChange={(e) => setAmount(e.target.value)}
               className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
             />
-            <p className="text-xs text-white/20 mt-1">Minimum: ₦500 · Usually arrives within 5–30 minutes</p>
+            <p className="text-xs text-white/20 mt-1">Minimum: ₦100 · Usually arrives within 5–30 minutes</p>
           </div>
 
           {error && (
@@ -384,7 +384,8 @@ export default function RiderWalletPage({ rider }) {
       if (!res.ok) throw new Error();
       const json = await res.json();
       setWalletData(json.data ?? json);
-      setTransactions((json.data ?? json).transactions || []);
+      const rawTransactions = (json.data ?? json).transactions || [];
+      setTransactions([...rawTransactions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch {
       setError("Could not load wallet. Please try again.");
     } finally {

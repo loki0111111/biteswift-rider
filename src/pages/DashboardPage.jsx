@@ -340,7 +340,7 @@ function OrderCard({ order, actionLabel, actionColor, onAction, loading, showSta
     <div className="bg-[#111111] border border-white/5 rounded-2xl p-5 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-white/30 mb-1">Order #{order._id?.slice(-6).toUpperCase()}</p>
+          <p className="text-xs text-white/30 mb-1">Order #{order._id?.slice(-8).toUpperCase()}</p>
           <p className="text-sm font-bold text-white">{order.customerName || "Customer"}</p>
         </div>
         {showStatus && <StatusBadge status={order.status} />}
