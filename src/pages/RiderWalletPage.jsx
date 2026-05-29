@@ -506,17 +506,20 @@ export default function RiderWalletPage({ rider }) {
               const time = t.createdAt
                 ? new Date(t.createdAt).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })
                 : "";
+              // AFTER
               const statusColor = t.status === "pending"
                 ? "text-yellow-400"
                 : t.status === "failed"
                 ? "text-red-400"
-                : isCredit ? "text-green-400" : "text-red-400";
+                : isCredit || t.status === "success"
+                ? "text-green-400"
+                : "text-red-400";
 
               return (
                 <div key={t._id || t.reference || i} className="flex items-center justify-between px-5 py-4 hover:bg-white/3 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isCredit ? "bg-green-500/10" : "bg-red-500/10"}`}>
-                      {isCredit
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isCredit || t.status === "success" ? "bg-green-500/10" : "bg-red-500/10"}`}>
+                      {isCredit || t.status === "success"
                         ? <span className="text-green-400"><IconArrowDown /></span>
                         : <span className="text-red-400"><IconArrowUp /></span>
                       }
