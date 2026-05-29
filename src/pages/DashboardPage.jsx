@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import RiderWalletPage from "./RiderWalletPage";
+import ActiveDeliveryMap from "../components/ActiveDeliveryMap";
+import useLocationSender from "../hooks/useLocationSender";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconPackage = () => (
@@ -153,9 +155,14 @@ export default function DashboardPage() {
   const isOnDelivery = rider?.riderStatus === "On Delivery";
 
   const availableOrders = orders.filter(o =>
-    (o.status === "pending" || o.status === "confirmed") && !o.riderId
+  (o.status === "pending" || o.status === "confirmed") && !o.riderId
   );
   const myOrders = orders.filter(o => o.riderId);
+  
+  const activeOrder = myOrders.find(o =>
+    o.status === "assigned" || o.status === "picked-up" || o.status === "in-transit"
+  );
+  useLocationSender(!!activeOrder);
 
   if (loadingProfile) {
     return (
@@ -362,6 +369,11 @@ function OrderCard({ order, actionLabel, actionColor, onAction, loading, showSta
           </div>
         )}
       </div>
+      
+      {/* Map — only shows on active orders */}
+      {(order.status === "assigned" || order.status === "picked-up" || order.status === "in-transit") && (
+        <ActiveDeliveryMap order={order} />
+      )}
 
       <div className="flex items-center justify-between pt-2 border-t border-white/5">
         <div>
