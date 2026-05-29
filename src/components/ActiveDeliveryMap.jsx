@@ -1,20 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const loadGoogleMapsScript = () => {
-  return new Promise((resolve) => {
-    if (window.google?.maps) return resolve();
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) {
-      existing.addEventListener("load", resolve);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.onload = resolve;
-    document.head.appendChild(script);
-  });
-};
+import { loadGoogleMapsScript } from "../utils/googleMaps";
 
 const geocodeAddress = (address) => {
   return new Promise((resolve, reject) => {
