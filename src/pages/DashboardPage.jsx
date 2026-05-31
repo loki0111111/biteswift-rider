@@ -4,6 +4,7 @@ import api from "../services/api";
 import RiderWalletPage from "./RiderWalletPage";
 import ActiveDeliveryMap from "../components/ActiveDeliveryMap";
 import useLocationSender from "../hooks/useLocationSender";
+import RiderAccountTab from "./RiderAccountTab";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconPackage = () => (
@@ -15,6 +16,13 @@ const IconPackage = () => (
 const IconCheck = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+
+
+const IconUser = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
   </svg>
 );
 
@@ -158,7 +166,7 @@ export default function DashboardPage() {
   (o.status === "pending" || o.status === "confirmed") && !o.riderId
   );
   const myOrders = orders.filter(o => o.riderId);
-  
+
   const activeOrder = myOrders.find(o =>
     o.status === "assigned" || o.status === "picked-up" || o.status === "in-transit"
   );
@@ -199,10 +207,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-5 space-y-5">
+      <div className="max-w-lg mx-auto px-4 py-5 space-y-5 pb-20">
 
-        {/* ── Status Toggle Card — hidden on wallet tab ── */}
-        {activeTab !== "wallet" && (
+        {activeTab !== "wallet" && activeTab !== "account" && (
           <div className={`rounded-2xl p-5 border transition-all ${isAvailable ? "bg-green-500/10 border-green-500/20" : isOnDelivery ? "bg-blue-500/10 border-blue-500/20" : "bg-[#111111] border-white/5"}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -231,8 +238,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Stats Row — hidden on wallet tab ── */}
-        {activeTab !== "wallet" && (
+        {activeTab !== "wallet" && activeTab !== "account" && (
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Wallet", value: `₦${Number(rider?.walletBalance || 0).toLocaleString()}` },
@@ -247,33 +253,29 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Tabs ── */}
-        <div className="flex gap-1 bg-[#111111] border border-white/5 rounded-2xl p-1">
-          {[
-            { key: "available", label: `Available (${availableOrders.length})` },
-            { key: "mydeliveries", label: `My Deliveries (${myOrders.length})` },
-            { key: "wallet", label: "Wallet", icon: <IconWallet /> },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 text-xs py-2 rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === tab.key ? "bg-[#F97316] text-white" : "text-white/40 hover:text-white"
-              }`}
-            >
-              {tab.icon && tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Wallet Tab ── */}
-        {activeTab === "wallet" && (
-          <RiderWalletPage rider={rider} />
+        {activeTab !== "wallet" && activeTab !== "account" && (
+          <div className="flex gap-1 bg-[#111111] border border-white/5 rounded-2xl p-1">
+            {[
+              { key: "available", label: `Available (${availableOrders.length})` },
+              { key: "mydeliveries", label: `My Deliveries (${myOrders.length})` },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 text-xs py-2 rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === tab.key ? "bg-[#F97316] text-white" : "text-white/40 hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         )}
 
-        {/* ── Orders List ── */}
-        {activeTab !== "wallet" && (
+        {activeTab === "wallet" && <RiderWalletPage rider={rider} />}
+        {activeTab === "account" && <RiderAccountTab rider={rider} onLogout={handleLogout} />}
+
+        {activeTab !== "wallet" && activeTab !== "account" && (
           <>
             {loadingOrders ? (
               <div className="flex items-center justify-center py-12">
@@ -326,7 +328,6 @@ export default function DashboardPage() {
                 </div>
               )
             )}
-
             <button
               onClick={fetchOrders}
               className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/60 text-sm font-medium rounded-xl transition-all"
@@ -337,6 +338,29 @@ export default function DashboardPage() {
         )}
 
       </div>
+
+      {/* ── Bottom Nav ── */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#111111] border-t border-white/5 px-4 py-3 z-20">
+        <div className="max-w-lg mx-auto flex items-center justify-around">
+          {[
+            { key: "available", label: "Orders", icon: <IconPackage /> },
+            { key: "wallet", label: "Wallet", icon: <IconWallet /> },
+            { key: "account", label: "Account", icon: <IconUser /> },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex flex-col items-center gap-1 px-6 py-1 rounded-xl transition-all ${
+                activeTab === tab.key ? "text-[#F97316]" : "text-white/30 hover:text-white/60"
+              }`}
+            >
+              {tab.icon}
+              <span className="text-xs font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }
@@ -396,3 +420,4 @@ function OrderCard({ order, actionLabel, actionColor, onAction, loading, showSta
     </div>
   );
 }
+
