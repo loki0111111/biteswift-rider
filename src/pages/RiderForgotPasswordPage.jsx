@@ -31,7 +31,7 @@ export default function RiderForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2">
@@ -43,7 +43,7 @@ export default function RiderForgotPasswordPage() {
           <p className="text-white/40 text-sm mt-2">Rider Portal</p>
         </div>
 
-        <div className="bg-[#111111] border border-white/10 rounded-2xl p-7">
+        <div className="bg-gray-50 border border-white/10 rounded-2xl p-7">
           {sent ? (
             <div className="text-center">
               <div className="w-14 h-14 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">

@@ -16,12 +16,10 @@ export default function LoginPage() {
     try {
       const res = await api.post("/auth/login", form);
       const { token, role } = res.data;
-
       if (role !== "rider") {
         setError("This portal is for riders only.");
         return;
       }
-
       localStorage.setItem("riderToken", token);
       navigate("/dashboard");
     } catch (err) {
@@ -32,7 +30,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
@@ -41,48 +39,46 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-[#F97316] rounded-xl flex items-center justify-center">
               <span className="text-white font-bold text-xl">B</span>
             </div>
-            <span className="text-2xl font-bold text-white">BiteSwift</span>
+            <span className="text-2xl font-bold text-gray-900">BiteSwift</span>
           </div>
-          <p className="text-white/40 text-sm mt-2">Rider Portal</p>
+          <p className="text-gray-400 text-sm mt-2">Rider Portal</p>
         </div>
 
-        <div className="bg-[#111111] border border-white/10 rounded-2xl p-7">
-          <h1 className="text-xl font-bold text-white mb-1">Welcome back</h1>
-          <p className="text-white/40 text-sm mb-6">Sign in to your rider account</p>
+        <div className="bg-white border border-gray-200 rounded-2xl p-7 shadow-sm">
+          <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome back</h1>
+          <p className="text-gray-400 text-sm mb-6">Sign in to your rider account</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div>
-              <label className="block text-xs font-semibold text-white/40 mb-1.5">Email Address</label>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email Address</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="e.g. emeka@gmail.com"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
               />
             </div>
 
-            {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-white/40">Password</label>
-              <a href="/forgot-password" className="text-xs text-orange-500 hover:text-orange-400 font-medium transition-colors">
-                Forgot password?
-              </a>
-            </div>
+                <label className="block text-xs font-semibold text-gray-500">Password</label>
+                <a href="/forgot-password" className="text-xs text-orange-500 hover:text-orange-600 font-medium transition-colors">
+                  Forgot password?
+                </a>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 pr-12"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
                 >
                   {showPassword ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -94,15 +90,15 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-                <p className="text-red-400 text-xs">{error}</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="text-red-500 text-xs">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#F97316] hover:bg-orange-600 disabled:bg-orange-500/50 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-[#F97316] hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -114,7 +110,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-white/20 text-xs mt-6">
+        <p className="text-center text-gray-300 text-xs mt-6">
           Having trouble? Contact BiteSwift support.
         </p>
       </div>
