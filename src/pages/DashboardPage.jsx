@@ -81,6 +81,18 @@ export default function DashboardPage() {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+  const [maintenance, setMaintenance] = useState(false);
+  const [maintenanceChecked, setMaintenanceChecked] = useState(false);
+
+  useEffect(() => {
+  fetch("https://biteswift-qw3s.onrender.com/api/settings/maintenance")
+    .then(r => r.json())
+    .then(data => {
+      setMaintenance(data.businessMaintenance === true);
+    })
+    .catch(() => {})
+    .finally(() => setMaintenanceChecked(true));
+}, []);
 
   const fetchProfile = async () => {
     try {
@@ -168,7 +180,17 @@ export default function DashboardPage() {
   );
   useLocationSender(!!activeOrder);
 
-  if (loadingProfile) {
+  if (!maintenanceChecked) return null;
+
+if (maintenance) return (
+  <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+    <div className="text-6xl mb-4">🔧</div>
+    <h1 className="text-xl font-bold text-gray-800 mb-2">Under Maintenance</h1>
+    <p className="text-gray-400 text-sm">BiteSwift is currently undergoing maintenance. Check back soon.</p>
+  </div>
+);
+
+if (loadingProfile) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">

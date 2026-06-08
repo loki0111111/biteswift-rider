@@ -21,6 +21,32 @@ const geocodeAddress = (address) => {
   });
 };
 
+// Custom house SVG icon for the customer delivery pin
+const CUSTOMER_HOUSE_ICON = {
+  url:
+    "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="44" height="52" viewBox="0 0 44 52">
+        <!-- Drop-shadow -->
+        <ellipse cx="22" cy="50" rx="9" ry="3" fill="rgba(0,0,0,0.25)" />
+        <!-- Balloon body -->
+        <path d="M22 2 C10 2 2 10 2 20 C2 32 22 48 22 48 C22 48 42 32 42 20 C42 10 34 2 22 2 Z"
+              fill="#22c55e" stroke="#ffffff" stroke-width="2"/>
+        <!-- House shape (white) -->
+        <g transform="translate(22,19)">
+          <!-- Roof -->
+          <polygon points="-9,-8 0,-15 9,-8" fill="white"/>
+          <!-- Body -->
+          <rect x="-7" y="-8" width="14" height="11" rx="1" fill="white"/>
+          <!-- Door -->
+          <rect x="-3" y="-1" width="6" height="7" rx="1" fill="#22c55e"/>
+        </g>
+      </svg>
+    `),
+  scaledSize: { width: 44, height: 52 },   // applied after Maps loads
+  anchor: { x: 22, y: 48 },
+};
+
 export default function ActiveDeliveryMap({ order }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -77,7 +103,7 @@ export default function ActiveDeliveryMap({ order }) {
 
         mapInstanceRef.current = map;
 
-        // ── Pickup pin (orange — business location) ─────────────
+        // ── Pickup pin (orange circle — business location) ──────
         new window.google.maps.Marker({
           position: pickupCoords,
           map,
@@ -98,25 +124,18 @@ export default function ActiveDeliveryMap({ order }) {
           },
         });
 
-        // ── Dropoff pin (green — customer address) ──────────────
+        // ── Customer delivery pin (green house icon) ────────────
         new window.google.maps.Marker({
           position: dropoffCoords,
           map,
-          title: order.deliveryAddress || "Dropoff",
+          title: order.deliveryAddress || "Customer location",
           icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#22c55e",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
+            url: CUSTOMER_HOUSE_ICON.url,
+            scaledSize: new window.google.maps.Size(44, 52),
+            anchor: new window.google.maps.Point(22, 48),
           },
-          label: {
-            text: "D",
-            color: "#ffffff",
-            fontSize: "11px",
-            fontWeight: "bold",
-          },
+          // Tooltip-style info window on click
+          zIndex: 10,
         });
 
         // ── Draw route between pickup and dropoff ───────────────
@@ -205,7 +224,7 @@ export default function ActiveDeliveryMap({ order }) {
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                Dropoff
+                Customer
               </span>
             </div>
           </div>
