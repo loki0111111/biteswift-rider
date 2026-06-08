@@ -88,7 +88,8 @@ export default function DashboardPage() {
   fetch("https://biteswift-qw3s.onrender.com/api/settings/maintenance")
     .then(r => r.json())
     .then(data => {
-      setMaintenance(data.businessMaintenance === true);
+      const isBypass = localStorage.getItem("biteswift_bypass") === "true";
+      setMaintenance(!isBypass && data.businessMaintenance === true);
     })
     .catch(() => {})
     .finally(() => setMaintenanceChecked(true));

@@ -1,234 +1,164 @@
 import { useEffect, useRef, useState } from "react";
-
-import { loadGoogleMapsScript } from "../utils/googleMaps";
-
-const geocodeAddress = (address) => {
-  return new Promise((resolve, reject) => {
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode(
-      { address: address + ", Nigeria" },
-      (results, status) => {
-        if (status === "OK" && results[0]) {
-          resolve({
-            lat: results[0].geometry.location.lat(),
-            lng: results[0].geometry.location.lng(),
-          });
-        } else {
-          reject(new Error("Could not find location: " + address));
-        }
-      }
-    );
-  });
-};
-
-// Custom house SVG icon for the customer delivery pin
-const CUSTOMER_HOUSE_ICON = {
-  url:
-    "data:image/svg+xml;charset=UTF-8," +
-    encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="44" height="52" viewBox="0 0 44 52">
-        <!-- Drop-shadow -->
-        <ellipse cx="22" cy="50" rx="9" ry="3" fill="rgba(0,0,0,0.25)" />
-        <!-- Balloon body -->
-        <path d="M22 2 C10 2 2 10 2 20 C2 32 22 48 22 48 C22 48 42 32 42 20 C42 10 34 2 22 2 Z"
-              fill="#22c55e" stroke="#ffffff" stroke-width="2"/>
-        <!-- House shape (white) -->
-        <g transform="translate(22,19)">
-          <!-- Roof -->
-          <polygon points="-9,-8 0,-15 9,-8" fill="white"/>
-          <!-- Body -->
-          <rect x="-7" y="-8" width="14" height="11" rx="1" fill="white"/>
-          <!-- Door -->
-          <rect x="-3" y="-1" width="6" height="7" rx="1" fill="#22c55e"/>
-        </g>
-      </svg>
-    `),
-  scaledSize: { width: 44, height: 52 },   // applied after Maps loads
-  anchor: { x: 22, y: 48 },
-};
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 export default function ActiveDeliveryMap({ order }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const directionsRendererRef = useRef(null);
-  const [routeInfo, setRouteInfo] = useState(null);
+  const riderMarkerRef = useRef(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [riderCoords, setRiderCoords] = useState(null);
 
+  // Request rider GPS once
   useEffect(() => {
-    if (!order) return;
+    if (!navigator.geolocation) {
+      setError("Location not supported on this device.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setRiderCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => setError("Could not get your location. Please enable GPS."),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [order?._id]);
 
-    let isMounted = true;
+  // Build map once riderCoords is available
+  useEffect(() => {
+    if (!riderCoords || !mapRef.current || !order) return;
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
-    const initMap = async () => {
-      try {
-        await loadGoogleMapsScript();
-        if (!isMounted || !mapRef.current) return;
+    const dropoffCoords = order.deliveryCoords?.lat
+      ? [order.deliveryCoords.lat, order.deliveryCoords.lng]
+      : null;
 
-        // ── Resolve pickup coordinates ──────────────────────────
-        let pickupCoords = order.pickupCoords?.lat
-          ? order.pickupCoords
-          : null;
+    const riderLatLng = [riderCoords.lat, riderCoords.lng];
 
-        if (!pickupCoords) {
-          const address = order.businessId?.restaurantLocation;
-          if (!address) throw new Error("No pickup address found");
-          pickupCoords = await geocodeAddress(address);
-        }
+    const map = L.map(mapRef.current, {
+      center: riderLatLng,
+      zoom: 15,
+      zoomControl: true,
+    });
 
-        // ── Resolve dropoff coordinates ─────────────────────────
-        let dropoffCoords = order.deliveryCoords?.lat
-          ? order.deliveryCoords
-          : null;
+    mapInstanceRef.current = map;
 
-        if (!dropoffCoords) {
-          if (!order.deliveryAddress) throw new Error("No delivery address found");
-          dropoffCoords = await geocodeAddress(order.deliveryAddress);
-        }
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { attribution: "Tiles © Esri" }
+    ).addTo(map);
 
-        if (!isMounted || !mapRef.current) return;
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      { attribution: "" }
+    ).addTo(map);
 
-        // ── Initialize map ──────────────────────────────────────
-        const map = new window.google.maps.Map(mapRef.current, {
-          zoom: 13,
-          center: pickupCoords,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          zoomControl: true,
-          styles: [
-            { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
-          ],
-        });
+    // Rider pin (blue dot)
+    const riderIcon = L.divIcon({
+      className: "",
+      html: `<div style="
+        width:18px;height:18px;border-radius:50%;
+        background:#3B82F6;border:3px solid white;
+        box-shadow:0 0 0 4px rgba(59,130,246,0.3);
+      "></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    });
 
-        mapInstanceRef.current = map;
+    const riderMarker = L.marker(riderLatLng, { icon: riderIcon })
+      .addTo(map)
+      .bindTooltip("You", { permanent: true, direction: "top", offset: [0, -10] });
 
-        // ── Pickup pin (orange circle — business location) ──────
-        new window.google.maps.Marker({
-          position: pickupCoords,
-          map,
-          title: order.businessId?.restaurantName || "Pickup",
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#F97316",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
-          },
-          label: {
-            text: "P",
-            color: "#ffffff",
-            fontSize: "11px",
-            fontWeight: "bold",
-          },
-        });
+    riderMarkerRef.current = riderMarker;
 
-        // ── Customer delivery pin (green house icon) ────────────
-        new window.google.maps.Marker({
-          position: dropoffCoords,
-          map,
-          title: order.deliveryAddress || "Customer location",
-          icon: {
-            url: CUSTOMER_HOUSE_ICON.url,
-            scaledSize: new window.google.maps.Size(44, 52),
-            anchor: new window.google.maps.Point(22, 48),
-          },
-          // Tooltip-style info window on click
-          zIndex: 10,
-        });
+    // Customer house pin
+    if (dropoffCoords) {
+      const houseIcon = L.divIcon({
+        className: "",
+        html: `<div style="width:44px;height:52px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="44" height="52" viewBox="0 0 44 52">
+            <ellipse cx="22" cy="50" rx="9" ry="3" fill="rgba(0,0,0,0.25)"/>
+            <path d="M22 2 C10 2 2 10 2 20 C2 32 22 48 22 48 C22 48 42 32 42 20 C42 10 34 2 22 2 Z"
+                  fill="#22c55e" stroke="#ffffff" stroke-width="2"/>
+            <g transform="translate(22,19)">
+              <polygon points="-9,-8 0,-15 9,-8" fill="white"/>
+              <rect x="-7" y="-8" width="14" height="11" rx="1" fill="white"/>
+              <rect x="-3" y="-1" width="6" height="7" rx="1" fill="#22c55e"/>
+            </g>
+          </svg>
+        </div>`,
+        iconSize: [44, 52],
+        iconAnchor: [22, 48],
+      });
 
-        // ── Draw route between pickup and dropoff ───────────────
-        const directionsService = new window.google.maps.DirectionsService();
-        const directionsRenderer = new window.google.maps.DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          polylineOptions: {
-            strokeColor: "#F97316",
-            strokeWeight: 4,
-            strokeOpacity: 0.8,
-          },
-        });
+      L.marker(dropoffCoords, { icon: houseIcon })
+        .addTo(map)
+        .bindTooltip(order.deliveryAddress || "Customer", { permanent: false });
 
-        directionsRendererRef.current = directionsRenderer;
+      // Dashed line rider → customer
+      L.polyline([riderLatLng, dropoffCoords], {
+        color: "#F97316",
+        weight: 4,
+        opacity: 0.8,
+        dashArray: "8, 6",
+      }).addTo(map);
 
-        directionsService.route(
-          {
-            origin: pickupCoords,
-            destination: dropoffCoords,
-            travelMode: window.google.maps.TravelMode.DRIVING,
-          },
-          (result, status) => {
-            if (!isMounted) return;
-            if (status === "OK") {
-              directionsRenderer.setDirections(result);
-              const leg = result.routes[0].legs[0];
-              setRouteInfo({
-                distance: leg.distance.text,
-                duration: leg.duration.text,
-              });
-            }
-            setLoading(false);
-          }
-        );
-      } catch (err) {
-        if (isMounted) {
-          setError(err.message);
-          setLoading(false);
-        }
-      }
-    };
-
-    initMap();
+      map.fitBounds([riderLatLng, dropoffCoords], { padding: [40, 40] });
+    }
 
     return () => {
-      isMounted = false;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
+  }, [riderCoords, order?._id]);
+
+  // Live update rider dot every 10s
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const newLatLng = [pos.coords.latitude, pos.coords.longitude];
+        setRiderCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        if (riderMarkerRef.current) {
+          riderMarkerRef.current.setLatLng(newLatLng);
+        }
+      },
+      null,
+      { enableHighAccuracy: true, maximumAge: 10000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
   }, [order?._id]);
 
   return (
-    <div className="mt-4 rounded-xl overflow-hidden border border-white/10">
-
-      {/* Map container */}
-      <div ref={mapRef} style={{ height: "220px", width: "100%" }} />
-
-      {/* Info strip below map */}
-      <div className="bg-[#0D0D0D] px-4 py-3">
-        {loading && (
-          <div className="flex items-center gap-2 text-white/40">
-            <div className="w-3 h-3 border border-white/20 border-t-white/60 rounded-full animate-spin" />
-            <span className="text-xs">Calculating route...</span>
+    <div className="mt-4 rounded-xl overflow-hidden border border-gray-200">
+      {error ? (
+        <div className="h-[220px] bg-gray-100 flex items-center justify-center px-4">
+          <p className="text-xs text-red-400 text-center">{error}</p>
+        </div>
+      ) : !riderCoords ? (
+        <div className="h-[220px] bg-gray-100 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-6 h-6 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-xs text-gray-400">Getting your location…</p>
           </div>
-        )}
-
-        {error && (
-          <p className="text-xs text-red-400">{error}</p>
-        )}
-
-        {routeInfo && !loading && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <p className="text-xs text-white/40">Distance</p>
-                <p className="text-sm font-bold text-white">{routeInfo.distance}</p>
-              </div>
-              <div>
-                <p className="text-xs text-white/40">Est. time</p>
-                <p className="text-sm font-bold text-[#F97316]">{routeInfo.duration}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-white/40">
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#F97316] inline-block" />
-                Pickup
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                Customer
-              </span>
-            </div>
-          </div>
-        )}
+        </div>
+      ) : (
+        <div ref={mapRef} style={{ height: "220px", width: "100%" }} />
+      )}
+      <div className="bg-[#0D0D0D] px-4 py-3 flex items-center gap-4 text-xs text-white/40">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
+          You
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
+          Customer
+        </span>
       </div>
     </div>
   );
