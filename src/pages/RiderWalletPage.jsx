@@ -425,11 +425,16 @@ export default function RiderWalletPage({ rider }) {
           </p>
           <button
             onClick={() => setShowWithdraw(true)}
-            disabled={loading || balance === 0}
+            disabled={loading || balance === 0 || [0, 5, 6].includes(new Date().getDay())}
             className="bg-white text-[#F97316] text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-white/90 disabled:opacity-50 transition-colors"
           >
             Withdraw Funds
           </button>
+          {[0, 5, 6].includes(new Date().getDay()) && (
+            <p className="text-xs text-white/60 mt-2">
+              Withdrawals are only available Monday – Thursday.
+            </p>
+          )}
         </div>
       </div>
 
