@@ -106,7 +106,7 @@ export default function ActiveDeliveryMap({ order }) {
         dashArray: "8, 6",
       }).addTo(map);
 
-      map.fitBounds([riderLatLng, dropoffCoords], { padding: [40, 40] });
+      map.fitBounds([riderLatLng, dropoffCoords], { padding: [40, 40], maxZoom: 16 });
     }
 
     return () => {
