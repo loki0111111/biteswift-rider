@@ -6,6 +6,7 @@ export default function ActiveDeliveryMap({ order }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const riderMarkerRef = useRef(null);
+  const polylineRef = useRef(null);
   const [error, setError] = useState(null);
   const [riderCoords, setRiderCoords] = useState(null);
 
@@ -99,7 +100,7 @@ export default function ActiveDeliveryMap({ order }) {
         .bindTooltip(order.deliveryAddress || "Customer", { permanent: false });
 
       // Dashed line rider → customer
-      L.polyline([riderLatLng, dropoffCoords], {
+      polylineRef.current = L.polyline([riderLatLng, dropoffCoords], {
         color: "#F97316",
         weight: 4,
         opacity: 0.8,
@@ -126,6 +127,13 @@ export default function ActiveDeliveryMap({ order }) {
         setRiderCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         if (riderMarkerRef.current) {
           riderMarkerRef.current.setLatLng(newLatLng);
+        }
+        if (polylineRef.current) {
+          const currentLatLngs = polylineRef.current.getLatLngs();
+          if (currentLatLngs.length >= 1) {
+            currentLatLngs[0] = L.latLng(newLatLng);
+            polylineRef.current.setLatLngs(currentLatLngs);
+          }
         }
       },
       null,
